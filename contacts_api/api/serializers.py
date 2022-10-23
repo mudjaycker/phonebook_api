@@ -6,8 +6,6 @@ from django.contrib.auth.models import User
 from .models import *
 
 
-
-
 class TokenPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super(TokenPairSerializer, self).validate(attrs)
@@ -46,7 +44,8 @@ class GroupSerializer(serializers.ModelSerializer):
         model = Group
         fields = "name",
 
+
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
         model = Contact
-        fields = "__all__"
+        fields = "name", "number", "favorite", "group"
