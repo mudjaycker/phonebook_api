@@ -1,22 +1,16 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
-from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 from .models import *
-from rest_framework import mixins
 from rest_framework import viewsets
-from django.http import Http404
 HEADERS_ERROR = {
     "data": {"message": "header is not provided"},
     "status": 404
 }
-# from datetime import datetime, timedelta, date
 
 
 class TokenPairView(TokenObtainPairView):
@@ -51,7 +45,7 @@ class GroupViewSet(viewsets.ModelViewSet):
         if not response == None:
             user, token = response
             contact_groups = Group.objects.filter(author=token["user_id"])
-            result = [{"name": c.name, "created_at": c.created_at} for c in contact_groups]
+            result = [{"id": c.id, "name": c.name, "created_at": c.created_at} for c in contact_groups]
             return Response(data=result, status=200)
         else:
             return Response(**HEADERS_ERROR)
@@ -69,15 +63,20 @@ class ContactViewSet(viewsets.ModelViewSet):
         data = request.data
         if not response == None:
             _, token = response
-            contact = Contact(
-                name=data.get("name"),
-                phone_number=data.get("phone_number"),
-                favorite=data.get("favorite"),
-                group=data.get("group"),
-                author=token["user_id"]
-            )
-            contact.save()
-            return Response({"message": "saved successfulfy"}, 201)
+            try:
+                group = Group.objects.filter(id=data.get("group"), author=token["user_id"])
+                group_id = group[0].id
+                contact = Contact(
+                    name=data.get("name"),
+                    phone_number=data.get("phone_number"),
+                    favorite=data.get("favorite"),
+                    group=group_id,
+                    author=token["user_id"]
+                )
+                contact.save()
+                return Response({"message": "saved successfulfy"}, 201)
+            except:
+                return Response({"message": "Contact Group and User are not corresponding"}, 401)
 
         else:
             return Response(**HEADERS_ERROR)
@@ -90,6 +89,7 @@ class ContactViewSet(viewsets.ModelViewSet):
             user, token = response
             contact_users = Contact.objects.filter(author=token["user_id"])
             contact_list = [{
+                "id": c.id,
                 "name": c.name,
                 "phone_number": c.number,
                 "favorite": c.favorite,
