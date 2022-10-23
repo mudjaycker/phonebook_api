@@ -45,3 +45,25 @@ class ContactViewSet(viewsets.ModelViewSet):
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
 
+    def list(self, request, *args, **kwargs):
+        JWT_authenticator = self.authentication_classes[1]()
+        response = JWT_authenticator.authenticate(request)
+
+        print([i for i in Contact.objects.all()][0])
+        if not response == None:
+            user, token = response
+            # group_users = Group.objects.filter(author=token["user_id"])
+            contact_users = Contact.objects.filter(author=token["user_id"])
+            contact_list = [{
+                "name": c.name,
+                "phone_number": c.number,
+                "favorite": c.favorite,
+                "created_at": c.created_at,
+                "group": {"group_name": c.group.name}
+            } for c in contact_users if token["user_id"] == c.group.author.id ]
+
+            # print(contact_list)
+            
+            return Response(contact_list,200)
+        
+        else: return Response(data={"message": "header is not provided"}, status=404)
