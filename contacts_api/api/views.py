@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from .serializers import *
 from .models import *
 from rest_framework import viewsets
@@ -12,19 +12,22 @@ HEADERS_ERROR = {
     "status": 404
 }
 
+AUTH_CLASSES = SessionAuthentication, JWTAuthentication
+JWT_authenticator = AUTH_CLASSES[1]()
+
 
 class TokenPairView(TokenObtainPairView):
     serializer_class = TokenPairSerializer
 
 
 class GroupViewSet(viewsets.ModelViewSet):
-    authentication_classes = SessionAuthentication, JWTAuthentication
-    permission_classes = (IsAuthenticated,)
+    authentication_classes = AUTH_CLASSES
+    permission_classes = (AllowAny,)
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
 
     def create(self, request, *args, **kwargs):
-        JWT_authenticator = self.authentication_classes[1]()
+        
         response = JWT_authenticator.authenticate(request)
         data = request.data
 
@@ -39,7 +42,7 @@ class GroupViewSet(viewsets.ModelViewSet):
             return Response(**HEADERS_ERROR)
 
     def list(self, request, *args, **kwargs):
-        JWT_authenticator = self.authentication_classes[1]()
+        
 
         response = JWT_authenticator.authenticate(request)
         if not response == None:
@@ -52,13 +55,13 @@ class GroupViewSet(viewsets.ModelViewSet):
 
 
 class ContactViewSet(viewsets.ModelViewSet):
-    authentication_classes = SessionAuthentication, JWTAuthentication
-    permission_classes = (IsAuthenticated,)
+    authentication_classes = AUTH_CLASSES
+    permission_classes = (AllowAny,)
     queryset = Contact.objects.all()
     serializer_class = ContactSerializer
 
     def create(self, request, *args, **kwargs):
-        JWT_authenticator = self.authentication_classes[1]()
+        
         response = JWT_authenticator.authenticate(request)
         data = request.data
         if not response == None:
@@ -82,24 +85,30 @@ class ContactViewSet(viewsets.ModelViewSet):
             return Response(**HEADERS_ERROR)
 
     def list(self, request, *args, **kwargs):
-        JWT_authenticator = self.authentication_classes[1]()
+        
         response = JWT_authenticator.authenticate(request)
 
         if not response == None:
+            print(request.headers)
             user, token = response
             contact_users = Contact.objects.filter(author=token["user_id"])
-            contact_list = [{
-                "id": c.id,
-                "name": c.name,
-                "phone_number": c.number,
-                "favorite": c.favorite,
-                "created_at": c.created_at,
-                "group": {"group_name": c.group.name}
-            } for c in contact_users if token["user_id"] == c.group.author.id]
+            contact_list = [
+                {
+                    "id": c.id,
+                    "name": c.name,
+                    "phone_number": c.number,
+                    "favorite": c.favorite,
+                    "created_at": c.created_at,
+                    "group": {"group_name": c.group.name}
+                }
+                
+                for c in contact_users if token["user_id"] == c.group.author.id
+            ]
 
             # print(contact_list)
 
             return Response(contact_list, 200)
 
         else:
+            print(request.headers)
             return Response(**HEADERS_ERROR)
