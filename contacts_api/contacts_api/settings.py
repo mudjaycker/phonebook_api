@@ -42,7 +42,20 @@ INSTALLED_APPS = [
     'django_filters',
     'api',
     'rest_framework',
+    'drf_yasg',
 ]
+
+
+SWAGGER_SETTINGS = {
+   'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header'
+        }
+    }
+}
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
